@@ -1,4 +1,3 @@
-# Pong
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -14,8 +13,8 @@ namespace Game1
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         Texture2D ballTex, blueTex, redTex;
-        Vector2 ballPos, bluePos, redPos;
-        float ballXSpeed = 5, ballYSpeed = 5, blueYSpeed = 5, redYSpeed = 5, hitPos, ballDirection;
+        Vector2 ballPos, bluePos, redPos, ballDirection;
+        float ballXSpeed = 5, ballYSpeed = 5, blueYSpeed = 5, redYSpeed = 5, hitPos, directionFactor, ballSpeed = 5;
 
 
         public Pong()
@@ -34,8 +33,8 @@ namespace Game1
         
             ballPos = new Vector2(GraphicsDevice.Viewport.Width / 2 - ballTex.Width / 2, GraphicsDevice.Viewport.Height / 2 - ballTex.Height / 2);
             bluePos = new Vector2(5, GraphicsDevice.Viewport.Height / 2 - blueTex.Height / 2);
-            redPos = new Vector2(GraphicsDevice.Viewport.Width - redTex.Width - 5, GraphicsDevice.Viewport.Height / 2 - redTex.Height / 2);     
-            
+            redPos = new Vector2(GraphicsDevice.Viewport.Width - redTex.Width - 5, GraphicsDevice.Viewport.Height / 2 - redTex.Height / 2);
+            ballDirection = new Vector2(ballXSpeed, ballYSpeed);
         }
 
  
@@ -53,10 +52,21 @@ namespace Game1
         }
         void Restart()
         {
+            Random r = new Random();
+            int rInt = r.Next(-5, 5);
+
             ballPos = new Vector2(GraphicsDevice.Viewport.Width / 2 - ballTex.Width / 2, GraphicsDevice.Viewport.Height / 2 - ballTex.Height / 2);
             bluePos = new Vector2(5, GraphicsDevice.Viewport.Height / 2 - blueTex.Height / 2);
             redPos = new Vector2(GraphicsDevice.Viewport.Width - redTex.Width - 5, GraphicsDevice.Viewport.Height / 2 - redTex.Height / 2);
+            ballDirection.Normalize();
+            ballDirection.X = rInt;
+            ballDirection.Y = rInt;
+           
 
+            
+
+
+            
         }
        
 
@@ -68,33 +78,47 @@ namespace Game1
             if (Keyboard.GetState().IsKeyDown(Keys.Up)) { redPos.Y -= redYSpeed; } //beweging voor de rode speler
             if (redPos.Y <= 5) { redPos.Y = 5; }
             if (Keyboard.GetState().IsKeyDown(Keys.Down)) { redPos.Y += redYSpeed; }
-            if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 5) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 5; }
+            if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 1) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 1; }
 
             if (Keyboard.GetState().IsKeyDown(Keys.W)) { bluePos.Y -= blueYSpeed; } //beweging voor de blauwe speler
             if (bluePos.Y <= 5) { bluePos.Y = 5; }
             if (Keyboard.GetState().IsKeyDown(Keys.S)) { bluePos.Y += blueYSpeed; }
-            if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 5) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 5; }
+            if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 1) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 1; }
 
-            ballPos.X += ballXSpeed; //beweging voor de bal
-            ballPos.Y += ballYSpeed;
+            ballPos.X += ballDirection.X; //beweging voor de bal
+            ballPos.Y += ballDirection.Y;
 
-            if (ballPos.Y <= 0) { ballYSpeed *= -1; } // weerkaatsing bal tegen muren
-            if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height) { ballYSpeed *= -1; }
+            if (ballPos.Y <= 0) { ballDirection.Y *= -1; } // weerkaatsing bal tegen muren
+            if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height) { ballDirection.Y *= -1; }
 
             if (ballPos.X <= bluePos.X + blueTex.Width)
             {
-                if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballXSpeed < 0) //weerkaatsing bal blauwe speler
+                if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballDirection.X < 0) //weerkaatsing bal blauwe speler
                 {
-                    
-                    ballXSpeed *=-1/ballDirection;
+                    hitPos = Math.Abs((ballPos.Y + ballTex.Height / 2) - (bluePos.Y + blueTex.Height / 2));
+                    directionFactor = ((hitPos / (blueTex.Height * 0.5f)));
+                    ballDirection.Y = ballSpeed * directionFactor;
+                    ballDirection.Normalize();
+
+
+                    ballDirection.X *= -1;
+                    ballSpeed *= 1.05f;
+                    ballDirection *= ballSpeed;
                 }
 
             }
             if (ballPos.X + ballTex.Width >= redPos.X)
             {
-                if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballXSpeed > 0) //weerkaatsing bal rode speler
+                if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballDirection.X > 0) //weerkaatsing bal rode speler
                 {
-                    ballXSpeed *= -1;
+                    hitPos = Math.Abs((ballPos.Y + ballTex.Height / 2) - (redPos.Y + redTex.Height / 2));
+                    directionFactor = ((hitPos / (redTex.Height * 0.5f)));
+                    ballDirection.Y = ballSpeed * directionFactor;
+                    ballDirection.Normalize();
+                    ballDirection.X *= -1;
+                    ballSpeed *= 1.05f;
+                    ballDirection *= ballSpeed;
+
                 }
             }
 
