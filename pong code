@@ -12,10 +12,21 @@ namespace Game1
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-        Texture2D ballTex, blueTex, redTex;
+        Texture2D blueTex, redTex, ballTex, gameOverTex;
         Vector2 ballPos, bluePos, redPos, ballDirection;
-        float ballXSpeed = 5, ballYSpeed = 5, blueYSpeed = 5, redYSpeed = 5, hitPos, directionFactor, ballSpeed = 5;
-
+        float ballXSpeed = 5, ballYSpeed = 5, blueYSpeed = 5, redYSpeed = 5, normalizedRelativeIntersectionY, cos, sin, bounceAngle, maxBounceAngle;
+        const float PI = (float)Math.PI;
+     
+        void setBallSpeed(Vector2 Pos)
+        {
+            normalizedRelativeIntersectionY = ((Pos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
+            bounceAngle = normalizedRelativeIntersectionY * 75;
+     
+            cos = (float)Math.Cos(bounceAngle);
+            sin = (float)Math.Sin(bounceAngle);
+            ballYSpeed = 5 * -sin;
+            ballXSpeed = 5 * cos;
+        }
 
         public Pong()
         {
@@ -23,130 +34,96 @@ namespace Game1
             Content.RootDirectory = "Content";
         }
 
-       
+        /// <summary>
+        /// Allows the game to perform any initialization it needs to before starting to run.
+        /// This is where it can query for any required services and load any non-graphic
+        /// related content.  Calling base.Initialize will enumerate through any components
+        /// and initialize them as well.
+        /// </summary>
         protected override void Initialize()
         {
-        
-
+            // TODO: Add your initialization logic here
+            
             base.Initialize();
-          
+        }
+
+        /// <summary>
+        /// LoadContent will be called once per game and is the place to load
+        /// all of your content.
+        /// </summary>
+        protected override void LoadContent()
+        {
+            // Create a new SpriteBatch, which can be used to draw textures.
+            spriteBatch = new SpriteBatch(GraphicsDevice);
         
+            // TODO: use this.Content to load your game content here
+            blueTex = Content.Load<Texture2D>("blauweSpeler");
+            redTex = Content.Load<Texture2D>("rodeSpeler");
+            ballTex = Content.Load<Texture2D>("bal");
+            gameOverTex = Content.Load<Texture2D>("gameOver");
+
+         
+
             ballPos = new Vector2(GraphicsDevice.Viewport.Width / 2 - ballTex.Width / 2, GraphicsDevice.Viewport.Height / 2 - ballTex.Height / 2);
             bluePos = new Vector2(5, GraphicsDevice.Viewport.Height / 2 - blueTex.Height / 2);
             redPos = new Vector2(GraphicsDevice.Viewport.Width - redTex.Width - 5, GraphicsDevice.Viewport.Height / 2 - redTex.Height / 2);
             ballDirection = new Vector2(ballXSpeed, ballYSpeed);
+
+            normalizedRelativeIntersectionY = ((bluePos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
+            bounceAngle = normalizedRelativeIntersectionY * 75;
+            cos = (float)Math.Cos(bounceAngle);
+            sin = (float)Math.Sin(bounceAngle);
         }
 
- 
-        protected override void LoadContent()
-        {   spriteBatch = new SpriteBatch(GraphicsDevice);
-            ballTex = Content.Load<Texture2D>("Images/ballTex");
-            blueTex = Content.Load<Texture2D>("Images/blueTex");
-            redTex = Content.Load<Texture2D>("Images/redTex");
-           
-        }
-        
+        /// <summary>
+        /// UnloadContent will be called once per game and is the place to unload
+        /// game-specific content.
+        /// </summary>
         protected override void UnloadContent()
         {
-            
+            // TODO: Unload any non ContentManager content here
         }
-        void Restart()
-        {
-            Random r = new Random();
-            int rInt = r.Next(-5, 5);
 
-            ballPos = new Vector2(GraphicsDevice.Viewport.Width / 2 - ballTex.Width / 2, GraphicsDevice.Viewport.Height / 2 - ballTex.Height / 2);
-            bluePos = new Vector2(5, GraphicsDevice.Viewport.Height / 2 - blueTex.Height / 2);
-            redPos = new Vector2(GraphicsDevice.Viewport.Width - redTex.Width - 5, GraphicsDevice.Viewport.Height / 2 - redTex.Height / 2);
-            ballDirection.Normalize();
-            ballDirection.X = rInt;
-            ballDirection.Y = rInt;
-           
-
-            
-
-
-            
-        }
-       
-
+        /// <summary>
+        /// Allows the game to run logic such as updating the world,
+        /// checking for collisions, gathering input, and playing audio.
+        /// </summary>
+        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            if (Keyboard.GetState().IsKeyDown(Keys.Up)) { redPos.Y -= redYSpeed; } //beweging voor de rode speler
-            if (redPos.Y <= 5) { redPos.Y = 5; }
-            if (Keyboard.GetState().IsKeyDown(Keys.Down)) { redPos.Y += redYSpeed; }
-            if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 1) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 1; }
+                if (Keyboard.GetState().IsKeyDown(Keys.Up)) { redPos.Y -= redYSpeed; } //beweging voor de rode speler
+                if (redPos.Y <= 5) { redPos.Y = 5; }
+                if (Keyboard.GetState().IsKeyDown(Keys.Down)) { redPos.Y += redYSpeed; }
+                if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 5) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 5; }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.W)) { bluePos.Y -= blueYSpeed; } //beweging voor de blauwe speler
-            if (bluePos.Y <= 5) { bluePos.Y = 5; }
-            if (Keyboard.GetState().IsKeyDown(Keys.S)) { bluePos.Y += blueYSpeed; }
-            if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 1) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 1; }
+                if (Keyboard.GetState().IsKeyDown(Keys.W)) { bluePos.Y -= blueYSpeed; } //beweging voor de blauwe speler
+                if (bluePos.Y <= 5) { bluePos.Y = 5; }
+                if (Keyboard.GetState().IsKeyDown(Keys.S)) { bluePos.Y += blueYSpeed; }
+                if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 5) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 5; }
 
-            ballPos.X += ballDirection.X; //beweging voor de bal
-            ballPos.Y += ballDirection.Y;
+                ballPos.X += ballXSpeed; //beweging voor de bal
+                ballPos.Y += ballYSpeed;
 
-            if (ballPos.Y <= 0) { ballDirection.Y *= -1; } // weerkaatsing bal tegen muren
-            if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height) { ballDirection.Y *= -1; }
-
-            if (ballPos.X <= bluePos.X + blueTex.Width)
+                if (ballPos.Y <= 0) { ballYSpeed *= -1; } // weerkaatsing bal tegen muren
+                if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height) { ballYSpeed *= -1; }
+                
+                if (ballPos.X <= bluePos.X + redTex.Width) //weerkaatsing bal blauwe speler
             {
-                if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballDirection.X < 0) //weerkaatsing bal blauwe speler
-                {
-                    hitPos = Math.Abs((ballPos.Y + ballTex.Height / 2) - (bluePos.Y + blueTex.Height / 2));
-                    directionFactor = ((hitPos / (blueTex.Height * 0.5f)));
-                    ballDirection.Y = ballSpeed * directionFactor;
-                    ballDirection.Normalize();
-
-
-                    ballDirection.X *= -1;
-                    ballSpeed *= 1.05f;
-                    ballDirection *= ballSpeed;
+                    if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height) 
+                    {
+                    setBallSpeed(bluePos);
                 }
-
-            }
-            if (ballPos.X + ballTex.Width >= redPos.X)
+                   
+                }
+                if (ballPos.X >= redPos.X - ballTex.Width)  //weerkaatsing bal rode speler
             {
-                if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballDirection.X > 0) //weerkaatsing bal rode speler
-                {
-                    hitPos = Math.Abs((ballPos.Y + ballTex.Height / 2) - (redPos.Y + redTex.Height / 2));
-                    directionFactor = ((hitPos / (redTex.Height * 0.5f)));
-                    ballDirection.Y = ballSpeed * directionFactor;
-                    ballDirection.Normalize();
-                    ballDirection.X *= -1;
-                    ballSpeed *= 1.05f;
-                    ballDirection *= ballSpeed;
+                     if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height) 
+                        {
+                    setBallSpeed(redPos);
+                        }
+                    }
 
-                }
-            }
-
-            if (ballPos.X <= 5 || ballPos.X + ballTex.Width >= GraphicsDevice.Viewport.Width - 5) { Restart(); }
-
-
-
-            // TODO: Add your update logic here
-
-            base.Update(gameTime);
-        }
-
-        /// <summary>
-        /// This is called when the game should draw itself.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        
-        protected override void Draw(GameTime gameTime)
-        {
-            GraphicsDevice.Clear(Color.White);
-
-            // TODO: Add your drawing code here
-            spriteBatch.Begin();
-            spriteBatch.Draw(ballTex, ballPos, Color.White);
-            spriteBatch.Draw(blueTex, bluePos, Color.White);
-            spriteBatch.Draw(redTex, redPos, Color.White);
-            spriteBatch.End();
-            base.Draw(gameTime);
-        }
-    }
-}
+                
