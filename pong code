@@ -1,28 +1,65 @@
+//Pong game made by Alperen Elver and Guido Bekkers
+//Sprites are Original content
+//Soundeffects are downloaded from freesound.org
+
+/*
++-------------------------------+---------------------------------+
+|     XX XX XX                  |                    XX XX XX     |
+|                               |                                 |
+|                               |                                 |
+| +--+                          |                                 |
+| |  |                          |                                 |
+| |  |                          |                                 |
+| |  |                          |                                 |
+| |  |            XX            |                                 |
+| |  |            XX            |                                 |
+| +--+                          |                                 |
+|                               |                                 |
+|                               |                                 |
+|                               |                                 |
+|                               |                                 |
+|                               |                                 |
+|                               |                                 |
+|                               |                            +--+ |
+|                               |                            |  | |
+|                               |                            |  | |
+|                               |                            |  | |
+|                               |                            |  | |
+|                               |                            |  | |
+|                               |                            +--+ |
+|                               |                                 |
++-------------------------------+---------------------------------+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using Microsoft.Xna.Framework.Audio;
-using System;
+using System;                                                                                   //LIBRARIES
 
 namespace Game1
 {
-    /// <summary>
-    /// This is the main type for your game.
-    /// </summary>
-    public class Pong : Game
+  //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+    public class Pong : Game                                                                    //CLASS
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-        SoundEffect pop, wallPop;
-        Texture2D blueTex, redTex, ballTex, livesTex, blueWinsTex, redWinsTex, pressSpaceTex;
+        Song mySong;
+        Boolean pause = false; 
+        SoundEffect pop, wallPop, win;
+        Texture2D blueTex, redTex, ballTex, livesTex, blueWinsTex, redWinsTex, pressSpaceTex, startAgain, PauseTex, background;
         Vector2 ballPos, bluePos, redPos, ballDirection;
-        float ballSpeed, blueYSpeed = 10, redYSpeed = 10, normalizedRelativeIntersectionY;
+        Rectangle mainFrame;
+        float ballSpeed, blueYSpeed = 10, redYSpeed = 10, normalizedRelativeIntersectionY, volume=0.2f;
         int blueLives = 3, redLives = 3;
-        enum gameState { Endscreen, Menu, Game };
+        enum gameState { Endscreen, Menu, Game, Pause };
         gameState CurGamestate = gameState.Menu;
+        KeyboardState currentKB, previousKB;
 
-        void Reset()
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        void Reset()                                                                            //RESET
         {
             Random rnd = new Random();
             ballPos = new Vector2(GraphicsDevice.Viewport.Width / 2 - ballTex.Width / 2, GraphicsDevice.Viewport.Height / 2 - ballTex.Height / 2);
@@ -45,186 +82,320 @@ namespace Game1
             ballDirection.Normalize();
             ballSpeed = 6;
         }
+
+
         public Pong()
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
         }
 
-        /// <summary>
-        /// Allows the game to perform any initialization it needs to before starting to run.
-        /// This is where it can query for any required services and load any non-graphic
-        /// related content.  Calling base.Initialize will enumerate through any components
-        /// and initialize them as well.
-        /// </summary>
-        protected override void Initialize()
-        {
-            // TODO: Add your initialization logic here
-            base.Initialize();
-        }
 
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         protected override void LoadContent()
         {
             // Create a new SpriteBatch, which can be used to draw textures.
+                                                                                                //LOAD CONTENT
             spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            // TODO: use this.Content to load your game content here
+            mySong = Content.Load<Song>("BckMus");
             blueTex = Content.Load<Texture2D>("blueTex");
             redTex = Content.Load<Texture2D>("redTex");
             ballTex = Content.Load<Texture2D>("ballTex");
             livesTex = Content.Load<Texture2D>("lives");
             redWinsTex = Content.Load<Texture2D>("redWins");
+            PauseTex = Content.Load<Texture2D>("Pause");
             blueWinsTex = Content.Load<Texture2D>("blueWins");
-            pressSpaceTex = Content.Load<Texture2D>("startGame");
+            pressSpaceTex = Content.Load<Texture2D>("pongStart");
+            background = Content.Load<Texture2D>("background");
             pop = Content.Load<SoundEffect>("Audio/pop");
+            win = Content.Load<SoundEffect>("Audio/win");
             wallPop = Content.Load<SoundEffect>("Audio/wallpop");
-            MediaPlayer.Play(Content.Load<Song>("Audio/Gaande"));
-            
-            
-
+            startAgain = Content.Load<Texture2D>("startAgain");
+            mainFrame = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
             Reset();
+        }
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-
-
-
+        protected override void UnloadContent()                                                 //UNLOAD
+        {   
+           
         }
 
-        /// <summary>
-        /// UnloadContent will be called once per game and is the place to unload
-        /// game-specific content.
-        /// </summary>
-        protected override void UnloadContent()
+
+
+
+
+
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+        protected override void Update(GameTime gameTime)                                       //UPDATE
         {
-            // TODO: Unload any non ContentManager content here
-        }
+            previousKB = currentKB;
+            currentKB = Keyboard.GetState();
 
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        protected override void Update(GameTime gameTime)
-        {   if (CurGamestate == gameState.Endscreen)
+            if (pause == true)                                                      //Pause
+
             {
-                if (Keyboard.GetState().IsKeyDown(Keys.Space)) { blueLives = 3; redLives = 3; CurGamestate = gameState.Game; }
-            }
-            if (CurGamestate == gameState.Menu)
-            {
-                if (Keyboard.GetState().IsKeyDown(Keys.Space)) { CurGamestate = gameState.Game; }
-            }
-            if (CurGamestate == gameState.Game)
-            {
-                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                    Exit();
-
-                if (Keyboard.GetState().IsKeyDown(Keys.Up)) { redPos.Y -= redYSpeed; } //beweging voor de rode speler
-                if (redPos.Y <= 5) { redPos.Y = 5; }
-                if (Keyboard.GetState().IsKeyDown(Keys.Down)) { redPos.Y += redYSpeed; }
-                if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 5) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 5; }
-
-                if (Keyboard.GetState().IsKeyDown(Keys.W)) { bluePos.Y -= blueYSpeed; } //beweging voor de blauwe speler
-                if (bluePos.Y <= 5) { bluePos.Y = 5; }
-                if (Keyboard.GetState().IsKeyDown(Keys.S)) { bluePos.Y += blueYSpeed; }
-                if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 5) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 5; }
-
-                ballPos.X += ballDirection.X * ballSpeed; //beweging voor de bal
-                ballPos.Y += ballDirection.Y * ballSpeed;
-
-                if (ballPos.Y <= 0 & ballDirection.Y < 0) { ballDirection.Y *= -1; wallPop.Play(); } // weerkaatsing bal tegen muren
-                if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height & ballDirection.Y > 0) { ballDirection.Y *= -1; wallPop.Play(); }
-
-                if (ballPos.X <= bluePos.X + redTex.Width) //weerkaatsing bal blauwe speler
+                if (Keyboard.GetState().IsKeyDown(Keys.L))    //Increase sound
                 {
-                    if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballDirection.X < 0)
+
+
+
+                    MediaPlayer.Volume += 0.005f;
+
+                }
+
+
+
+                if (Keyboard.GetState().IsKeyDown(Keys.K))    //Decrease sound
+                {
+
+
+
+                    MediaPlayer.Volume -= 0.005f;
+
+                }
+
+                if (Keyboard.GetState().IsKeyDown(Keys.M))  //mute sound
+                {
+                    MediaPlayer.Volume = (volume * 0);
+                }
+
+                if (previousKB.IsKeyDown(Keys.P) && currentKB.IsKeyUp(Keys.P))
+                {
+
+                    pause = !pause;
+                }
+            }
+
+        
+            else
+            {
+                if (previousKB.IsKeyDown(Keys.P) && currentKB.IsKeyUp(Keys.P))
+                {
+                    pause = !pause;
+                }
+
+                    if (CurGamestate == gameState.Endscreen)                                    //Endscreen
+                {
+                    
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.Space))
                     {
-                        pop.Play();
+                        blueLives = 3;
+                        redLives = 3;
+                        CurGamestate = gameState.Game;
+                    }
+                }
 
-                        ballDirection.X *= -1;
+                if (CurGamestate == gameState.Menu)                                             //Menu
+                {
+                    MediaPlayer.Play(mySong);
+                    MediaPlayer.Volume = (volume);
 
-                        ballSpeed += 0.5f;
 
-                        normalizedRelativeIntersectionY = ((bluePos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
-                        ballDirection.Y = -normalizedRelativeIntersectionY / 2;
 
-                        ballDirection.Normalize();
+                    if (Keyboard.GetState().IsKeyDown(Keys.Space))
+                    {
+                        CurGamestate = gameState.Game;
                     }
 
                 }
-                if (ballPos.X >= redPos.X - ballTex.Width)  //weerkaatsing bal rode speler
+
+
+                if (CurGamestate == gameState.Game)                                             //Game
+
                 {
-                    if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballDirection.X > 0)
+
+
+                    if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+                        Exit();
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.Up))//beweging voor de rode speler 
                     {
-                        pop.Play();
+                        redPos.Y -= redYSpeed;                 //omhoog
+                    }
 
-                        ballDirection.X *= -1;
+                    if (redPos.Y <= 5)
+                    {
+                        redPos.Y = 5;
+                    }
 
-                        ballSpeed += 0.5f;
+                    if (Keyboard.GetState().IsKeyDown(Keys.Down))  //omlaag
+                    {
+                        redPos.Y += redYSpeed;
+                    }
 
-                        normalizedRelativeIntersectionY = ((redPos.Y + redTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (redTex.Height / 2);
-                        ballDirection.Y = -normalizedRelativeIntersectionY / 2;
+                    if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 5)
+                    {
+                        redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 5;
+                    }
 
-                        ballDirection.Normalize();
+                    if (Keyboard.GetState().IsKeyDown(Keys.W))//beweging voor de blauwe speler
+                    {
+                        bluePos.Y -= blueYSpeed;              //omhoog
+                    }
+
+                    if (bluePos.Y <= 5)
+                    {
+                        bluePos.Y = 5;
+                    }
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.S))
+                    {
+                        bluePos.Y += blueYSpeed;               //omlaag
+                    }
+
+                    if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 5)
+                    {
+                        bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 5;
+                    }
+
+
+
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.L))    //increase sound
+                    {
+
+
+
+                        MediaPlayer.Volume += 0.005f;
+
+                    }
+
+
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.K))    //decrease sound
+                    {
+
+
+
+                        MediaPlayer.Volume -= 0.005f;
+
+                    }
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.M))  //mute sound
+                    {
+                        MediaPlayer.Volume = (volume * 0);
+                    }
+
+                    ballPos.X += ballDirection.X * ballSpeed;   //beweging voor de bal
+
+                    ballPos.Y += ballDirection.Y * ballSpeed;
+
+                    if (ballPos.Y <= 0 & ballDirection.Y < 0)   // weerkaatsing bal tegen muren
+                    {
+                        ballDirection.Y *= -1; wallPop.Play();
+                    }
+                    if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height & ballDirection.Y > 0)
+                    {
+                        ballDirection.Y *= -1; wallPop.Play();
+                    }
+
+                    if (ballPos.X <= bluePos.X + redTex.Width) //weerkaatsing bal blauwe speler
+                    {
+                        if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballDirection.X < 0)
+                        {
+                            pop.Play();
+
+                            ballDirection.X *= -1;
+
+                            ballSpeed += 0.5f;
+
+                            normalizedRelativeIntersectionY = ((bluePos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
+                            ballDirection.Y = -normalizedRelativeIntersectionY / 2;
+
+                            ballDirection.Normalize();
+                        }
+
+                    }
+
+                    if (ballPos.X >= redPos.X - ballTex.Width)  //weerkaatsing bal rode speler
+                    {
+                        if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballDirection.X > 0)
+                        {
+                            pop.Play();
+
+                            ballDirection.X *= -1;
+
+                            ballSpeed += 0.5f;
+
+                            normalizedRelativeIntersectionY = ((redPos.Y + redTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (redTex.Height / 2);
+                            ballDirection.Y = -normalizedRelativeIntersectionY / 2;
+
+                            ballDirection.Normalize();
+                        }
+                    }
+                    if (ballPos.X <= 5)                                      //bal wordt niet weerkaatst door blauwe speler
+                    {
+
+                        blueLives--;
+                        Reset();
+                    }
+                    else if (ballPos.X >= GraphicsDevice.Viewport.Width - 5) //bal wordt niet weerkaatst door rode speler
+                    {
+                        redLives--;
+                        Reset();
+                    }
+                    if (blueLives < 1 || redLives < 1)
+                    {
+                        win.Play();
+                        CurGamestate = gameState.Endscreen;
                     }
                 }
-                if (ballPos.X <= 5) //bal wordt niet weerkaatst door blauwe speler
-                {
 
-                    blueLives--;
-                    Reset();
-                }
-                else if (ballPos.X >= GraphicsDevice.Viewport.Width - 5) //bal wordt niet weerkaatst door rode speler
-                {
-                    redLives--;
-                    Reset();
-                }
-                if (blueLives < 1 || redLives < 1)
-                {
-                    CurGamestate = gameState.Endscreen;
-                }
-
-
-                // TODO: Add your update logic here
             }
-            base.Update(gameTime);
-        }
 
-        /// <summary>
-        /// This is called when the game should draw itself.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        protected override void Draw(GameTime gameTime)
-        {
+
+                base.Update(gameTime);
+            
+        }
+            
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        
+        
+        
+        protected override void Draw(GameTime gameTime)                                         // DRAW
+        {   
+                
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin();
+            if (pause == true)
+            {
+                spriteBatch.Draw(PauseTex, new Vector2(GraphicsDevice.Viewport.Width /2 - (PauseTex.Width / 2), GraphicsDevice.Viewport.Height * 0.2f), Color.White);
+            }
+
             if (CurGamestate == gameState.Menu)
             {
-                spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.6f), Color.White);
+               
+                spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.2f), Color.White);
             }
+
             if (CurGamestate == gameState.Endscreen)
             {
+                
                 if (blueLives < 1)
                 {
+                    
                     spriteBatch.Draw(redWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (redWinsTex.Width / 2), (GraphicsDevice.Viewport.Height / 2 - (redWinsTex.Height / 2)) * 0.5f), Color.White);
-                    spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.6f), Color.White);
+                    spriteBatch.Draw(startAgain, new Vector2(GraphicsDevice.Viewport.Width / 2 - (startAgain.Width / 2), GraphicsDevice.Viewport.Height * 0.5f), Color.White);
                 }
                 if (redLives < 1)
                 {
+                    
                     spriteBatch.Draw(blueWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (blueWinsTex.Width / 2), (GraphicsDevice.Viewport.Height / 2 - (blueWinsTex.Height / 2)) * 0.5f), Color.White);
-                    spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.6f), Color.White);
+                    spriteBatch.Draw(startAgain, new Vector2(GraphicsDevice.Viewport.Width / 2 - (startAgain.Width / 2), GraphicsDevice.Viewport.Height * 0.5f), Color.White);
                 }
             }
-            // TODO: Add your drawing code here
-            if (CurGamestate == gameState.Game)
-            {
+
+ 
+                if (CurGamestate == gameState.Game)
+            {   spriteBatch.Draw(background, mainFrame, Color.White);
                
                 spriteBatch.Draw(blueTex, bluePos, Color.White);
                 spriteBatch.Draw(redTex, redPos, Color.White);
+                
                 int i = 0;
                 while (i < blueLives)
                 {
@@ -239,10 +410,10 @@ namespace Game1
                 }
                 spriteBatch.Draw(ballTex, ballPos, Color.White);
                 
+                
                 base.Draw(gameTime);
             }
             spriteBatch.End();
         }
     }
 }
-                
