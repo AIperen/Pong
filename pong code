@@ -15,7 +15,7 @@ namespace Game1
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         SoundEffect pop, wallPop;
-        Texture2D blueTex, redTex, ballTex, livesTex, blueWinsTex, redWinsTex;
+        Texture2D blueTex, redTex, ballTex, livesTex, blueWinsTex, redWinsTex, pressSpaceTex;
         Vector2 ballPos, bluePos, redPos, ballDirection;
         float ballSpeed, blueYSpeed = 10, redYSpeed = 10, normalizedRelativeIntersectionY;
         int blueLives = 3, redLives = 3;
@@ -60,7 +60,6 @@ namespace Game1
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-
             base.Initialize();
         }
 
@@ -80,8 +79,11 @@ namespace Game1
             livesTex = Content.Load<Texture2D>("lives");
             redWinsTex = Content.Load<Texture2D>("redWins");
             blueWinsTex = Content.Load<Texture2D>("blueWins");
+            pressSpaceTex = Content.Load<Texture2D>("startGame");
             pop = Content.Load<SoundEffect>("Audio/pop");
             wallPop = Content.Load<SoundEffect>("Audio/wallpop");
+            MediaPlayer.Play(Content.Load<Song>("Audio/Gaande"));
+            
             
 
             Reset();
@@ -200,15 +202,21 @@ namespace Game1
         {
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin();
+            if (CurGamestate == gameState.Menu)
+            {
+                spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.6f), Color.White);
+            }
             if (CurGamestate == gameState.Endscreen)
             {
                 if (blueLives < 1)
                 {
-                    spriteBatch.Draw(redWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (redWinsTex.Width / 2), GraphicsDevice.Viewport.Height / 2 - (redWinsTex.Height / 2)), Color.White);
+                    spriteBatch.Draw(redWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (redWinsTex.Width / 2), (GraphicsDevice.Viewport.Height / 2 - (redWinsTex.Height / 2)) * 0.5f), Color.White);
+                    spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.6f), Color.White);
                 }
                 if (redLives < 1)
                 {
-                    spriteBatch.Draw(blueWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (blueWinsTex.Width / 2), GraphicsDevice.Viewport.Height / 2 - (blueWinsTex.Height / 2)), Color.White); 
+                    spriteBatch.Draw(blueWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (blueWinsTex.Width / 2), (GraphicsDevice.Viewport.Height / 2 - (blueWinsTex.Height / 2)) * 0.5f), Color.White);
+                    spriteBatch.Draw(pressSpaceTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (pressSpaceTex.Width / 2), GraphicsDevice.Viewport.Height * 0.6f), Color.White);
                 }
             }
             // TODO: Add your drawing code here
