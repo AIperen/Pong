@@ -1,6 +1,8 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
+using Microsoft.Xna.Framework.Audio;
 using System;
 
 namespace Game1
@@ -12,25 +14,36 @@ namespace Game1
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-        Texture2D blueTex, redTex, ballTex, gameOverTex;
+        SoundEffect pop, wallPop;
+        Texture2D blueTex, redTex, ballTex, livesTex, blueWinsTex, redWinsTex;
         Vector2 ballPos, bluePos, redPos, ballDirection;
-        float ballSpeed = 5, blueYSpeed = 5, redYSpeed = 5, normalizedRelativeIntersectionY;
-
-        const float PI = (float)Math.PI;
-     
-        void setBallSpeed(Vector2 Pos)
-        {
-            normalizedRelativeIntersectionY = ((Pos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
-            
-        }
+        float ballSpeed, blueYSpeed = 10, redYSpeed = 10, normalizedRelativeIntersectionY;
+        int blueLives = 3, redLives = 3;
+        enum gameState { Endscreen, Menu, Game };
+        gameState CurGamestate = gameState.Menu;
 
         void Reset()
         {
+            Random rnd = new Random();
             ballPos = new Vector2(GraphicsDevice.Viewport.Width / 2 - ballTex.Width / 2, GraphicsDevice.Viewport.Height / 2 - ballTex.Height / 2);
             bluePos = new Vector2(5, GraphicsDevice.Viewport.Height / 2 - blueTex.Height / 2);
             redPos = new Vector2(GraphicsDevice.Viewport.Width - redTex.Width - 5, GraphicsDevice.Viewport.Height / 2 - redTex.Height / 2);
-            ballDirection = new Vector2(5, 5);
+
+            float vectX;
+            int exclude = rnd.Next(2);
+            if (exclude == 0)
+            {
+                vectX = -1;
+            }
+            else
+            {
+                vectX = 1;
+            }
+            float vectY = (float)(rnd.NextDouble() * 2.0 - 1.0) / 1.7f;
+
+            ballDirection = new Vector2(vectX, vectY);
             ballDirection.Normalize();
+            ballSpeed = 6;
         }
         public Pong()
         {
@@ -47,7 +60,7 @@ namespace Game1
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            
+
             base.Initialize();
         }
 
@@ -59,19 +72,25 @@ namespace Game1
         {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
-        
+
             // TODO: use this.Content to load your game content here
-            blueTex = Content.Load<Texture2D>("blauweSpeler");
-            redTex = Content.Load<Texture2D>("rodeSpeler");
-            ballTex = Content.Load<Texture2D>("bal");
-            gameOverTex = Content.Load<Texture2D>("gameOver");
-            Reset();
-
-         
-
+            blueTex = Content.Load<Texture2D>("blueTex");
+            redTex = Content.Load<Texture2D>("redTex");
+            ballTex = Content.Load<Texture2D>("ballTex");
+            livesTex = Content.Load<Texture2D>("lives");
+            redWinsTex = Content.Load<Texture2D>("redWins");
+            blueWinsTex = Content.Load<Texture2D>("blueWins");
+            pop = Content.Load<SoundEffect>("Audio/pop");
+            wallPop = Content.Load<SoundEffect>("Audio/wallpop");
             
 
-          
+            Reset();
+
+
+
+
+
+
         }
 
         /// <summary>
@@ -89,60 +108,89 @@ namespace Game1
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
-        {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
-
-            if (Keyboard.GetState().IsKeyDown(Keys.Up)) { redPos.Y -= redYSpeed; } //beweging voor de rode speler
-            if (redPos.Y <= 5) { redPos.Y = 5; }
-            if (Keyboard.GetState().IsKeyDown(Keys.Down)) { redPos.Y += redYSpeed; }
-            if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 5) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 5; }
-
-            if (Keyboard.GetState().IsKeyDown(Keys.W)) { bluePos.Y -= blueYSpeed; } //beweging voor de blauwe speler
-            if (bluePos.Y <= 5) { bluePos.Y = 5; }
-            if (Keyboard.GetState().IsKeyDown(Keys.S)) { bluePos.Y += blueYSpeed; }
-            if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 5) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 5; }
-
-            ballPos.X += ballDirection.X * ballSpeed; //beweging voor de bal
-            ballPos.Y += ballDirection.Y * ballSpeed;
-
-            if (ballPos.Y <= 0) { ballDirection.Y *= -1; } // weerkaatsing bal tegen muren
-            if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height) { ballDirection.Y *= -1; }
-                
-            if (ballPos.X <= bluePos.X + redTex.Width) //weerkaatsing bal blauwe speler
+        {   if (CurGamestate == gameState.Endscreen)
             {
-                if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballDirection.X < 0) 
-                {
-                    ballDirection.X *= -1;
-                    ballSpeed *= 1.1f;
-
-                    normalizedRelativeIntersectionY = ((bluePos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
-                    ballDirection.Y -= normalizedRelativeIntersectionY;
-                    ballDirection.Normalize();
-                }
-                   
+                if (Keyboard.GetState().IsKeyDown(Keys.Space)) { blueLives = 3; redLives = 3; CurGamestate = gameState.Game; }
             }
-            if (ballPos.X >= redPos.X - ballTex.Width)  //weerkaatsing bal rode speler
+            if (CurGamestate == gameState.Menu)
             {
-                if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballDirection.X > 0) 
-                {
-                    ballDirection.X *= -1;
-                    ballSpeed *= 1.1f;
-
-                    normalizedRelativeIntersectionY = ((redPos.Y + redTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (redTex.Height / 2);
-                    ballDirection.Y -= normalizedRelativeIntersectionY;
-                    ballDirection.Normalize();
-                }
+                if (Keyboard.GetState().IsKeyDown(Keys.Space)) { CurGamestate = gameState.Game; }
             }
+            if (CurGamestate == gameState.Game)
+            {
+                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+                    Exit();
 
-                
+                if (Keyboard.GetState().IsKeyDown(Keys.Up)) { redPos.Y -= redYSpeed; } //beweging voor de rode speler
+                if (redPos.Y <= 5) { redPos.Y = 5; }
+                if (Keyboard.GetState().IsKeyDown(Keys.Down)) { redPos.Y += redYSpeed; }
+                if (redPos.Y >= GraphicsDevice.Viewport.Height - redTex.Height - 5) { redPos.Y = GraphicsDevice.Viewport.Height - redTex.Height - 5; }
 
+                if (Keyboard.GetState().IsKeyDown(Keys.W)) { bluePos.Y -= blueYSpeed; } //beweging voor de blauwe speler
+                if (bluePos.Y <= 5) { bluePos.Y = 5; }
+                if (Keyboard.GetState().IsKeyDown(Keys.S)) { bluePos.Y += blueYSpeed; }
+                if (bluePos.Y >= GraphicsDevice.Viewport.Height - blueTex.Height - 5) { bluePos.Y = GraphicsDevice.Viewport.Height - blueTex.Height - 5; }
+
+                ballPos.X += ballDirection.X * ballSpeed; //beweging voor de bal
+                ballPos.Y += ballDirection.Y * ballSpeed;
+
+                if (ballPos.Y <= 0 & ballDirection.Y < 0) { ballDirection.Y *= -1; wallPop.Play(); } // weerkaatsing bal tegen muren
+                if (ballPos.Y >= GraphicsDevice.Viewport.Height - ballTex.Height & ballDirection.Y > 0) { ballDirection.Y *= -1; wallPop.Play(); }
+
+                if (ballPos.X <= bluePos.X + redTex.Width) //weerkaatsing bal blauwe speler
+                {
+                    if (ballPos.Y + ballTex.Height >= bluePos.Y & ballPos.Y <= bluePos.Y + blueTex.Height & ballDirection.X < 0)
+                    {
+                        pop.Play();
+
+                        ballDirection.X *= -1;
+
+                        ballSpeed += 0.5f;
+
+                        normalizedRelativeIntersectionY = ((bluePos.Y + blueTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (blueTex.Height / 2);
+                        ballDirection.Y = -normalizedRelativeIntersectionY / 2;
+
+                        ballDirection.Normalize();
+                    }
+
+                }
+                if (ballPos.X >= redPos.X - ballTex.Width)  //weerkaatsing bal rode speler
+                {
+                    if (ballPos.Y + ballTex.Height >= redPos.Y & ballPos.Y <= redPos.Y + redTex.Height & ballDirection.X > 0)
+                    {
+                        pop.Play();
+
+                        ballDirection.X *= -1;
+
+                        ballSpeed += 0.5f;
+
+                        normalizedRelativeIntersectionY = ((redPos.Y + redTex.Height / 2) - (ballPos.Y + ballTex.Height / 2)) / (redTex.Height / 2);
+                        ballDirection.Y = -normalizedRelativeIntersectionY / 2;
+
+                        ballDirection.Normalize();
+                    }
+                }
+                if (ballPos.X <= 5) //bal wordt niet weerkaatst door blauwe speler
+                {
+
+                    blueLives--;
+                    Reset();
+                }
+                else if (ballPos.X >= GraphicsDevice.Viewport.Width - 5) //bal wordt niet weerkaatst door rode speler
+                {
+                    redLives--;
+                    Reset();
+                }
+                if (blueLives < 1 || redLives < 1)
+                {
+                    CurGamestate = gameState.Endscreen;
+                }
 
 
                 // TODO: Add your update logic here
-
-                base.Update(gameTime);
-            } 
+            }
+            base.Update(gameTime);
+        }
 
         /// <summary>
         /// This is called when the game should draw itself.
@@ -150,17 +198,43 @@ namespace Game1
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.White);
-
-            // TODO: Add your drawing code here
+            GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin();
-            spriteBatch.Draw(ballTex, ballPos, Color.White);
-            spriteBatch.Draw(blueTex, bluePos, Color.White);
-            spriteBatch.Draw(redTex, redPos, Color.White);
+            if (CurGamestate == gameState.Endscreen)
+            {
+                if (blueLives < 1)
+                {
+                    spriteBatch.Draw(redWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (redWinsTex.Width / 2), GraphicsDevice.Viewport.Height / 2 - (redWinsTex.Height / 2)), Color.White);
+                }
+                if (redLives < 1)
+                {
+                    spriteBatch.Draw(blueWinsTex, new Vector2(GraphicsDevice.Viewport.Width / 2 - (blueWinsTex.Width / 2), GraphicsDevice.Viewport.Height / 2 - (blueWinsTex.Height / 2)), Color.White); 
+                }
+            }
+            // TODO: Add your drawing code here
+            if (CurGamestate == gameState.Game)
+            {
+               
+                spriteBatch.Draw(blueTex, bluePos, Color.White);
+                spriteBatch.Draw(redTex, redPos, Color.White);
+                int i = 0;
+                while (i < blueLives)
+                {
+                    spriteBatch.Draw(livesTex, new Vector2(i * livesTex.Width + 25, 20), Color.White);
+                    i++;
+                }
+                int j = 0;
+                while (j < redLives)
+                {
+                    spriteBatch.Draw(livesTex, new Vector2(GraphicsDevice.Viewport.Width - 25 - livesTex.Width - j * livesTex.Width, 20), Color.White);
+                    j++;
+                }
+                spriteBatch.Draw(ballTex, ballPos, Color.White);
+                
+                base.Draw(gameTime);
+            }
             spriteBatch.End();
-            base.Draw(gameTime);
         }
     }
 }
-
                 
